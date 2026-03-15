@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>记忆翻牌 · 全栈版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+    <div class="mx-auto max-w-5xl px-4 py-8">
+      <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-indigo-400/30"></div>
+          <div>
+            <h1 class="text-lg font-semibold tracking-tight md:text-xl">记忆翻牌</h1>
+            <p class="text-xs text-slate-300">原生前端 + Express + JSON 排行榜</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="navGame" class="rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-white/10">游戏</button>
+          <button id="navLeaderboard" class="rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-white/10">排行榜</button>
+          <div class="h-6 w-px bg-white/10"></div>
+          <div id="userBadge" class="hidden items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10">
+            <span id="userName" class="font-medium"></span>
+            <button id="switchUser" class="text-slate-300 hover:text-white">切换</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="mt-6 grid gap-6">
+        <section id="gameView" class="grid gap-6">
+          <div class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs text-slate-300">回合（翻两张=1）</div>
+                  <div id="turns" class="mt-1 text-2xl font-semibold">0</div>
+                </div>
+                <div>
+                  <div class="text-xs text-slate-300">用时</div>
+                  <div id="time" class="mt-1 text-2xl font-semibold">00:00</div>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button id="restart" class="rounded-xl bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-400">重新开始</button>
+                <button id="share" class="rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-white/10">分享链接</button>
+              </div>
+              <p id="toast" class="mt-3 hidden text-xs text-slate-300"></p>
+            </div>
+
+            <div class="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+              <div class="text-xs text-slate-300">个人数据</div>
+              <div class="mt-3 grid grid-cols-2 gap-3">
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                  <div class="text-xs text-slate-300">总积分</div>
+                  <div id="totalScore" class="mt-1 text-xl font-semibold">-</div>
+                </div>
+                <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                  <div class="text-xs text-slate-300">最佳回合</div>
+                  <div id="bestTurns" class="mt-1 text-xl font-semibold">-</div>
+                </div>
+                <div class="col-span-2 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                  <div class="text-xs text-slate-300">最佳用时</div>
+                  <div id="bestTime" class="mt-1 text-xl font-semibold">-</div>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-slate-300">游客模式不会上榜；输入用户名后胜利将自动提交成绩。</p>
+            </div>
+
+            <div class="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+              <div class="text-xs text-slate-300">规则</div>
+              <ul class="mt-3 space-y-2 text-sm text-slate-200">
+                <li>同一时间最多翻两张。</li>
+                <li>匹配成功会保持翻开；不匹配会自动翻回。</li>
+                <li>用更少回合与更短时间获取更高积分。</li>
+              </ul>
+            </div>
+          </div>
+
+          <section class="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-slate-300">进度</div>
+                <div id="progress" class="mt-1 text-sm text-slate-200">0 / 16</div>
+              </div>
+              <div id="apiStatus" class="text-xs text-slate-300"></div>
+            </div>
+
+            <div id="board" class="mt-4 grid grid-cols-4 gap-3 md:gap-4"></div>
+          </section>
+        </section>
+
+        <section id="leaderboardView" class="hidden rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-semibold">Top 10 排行榜</h2>
+              <p class="text-xs text-slate-300">按总积分排序；同分按最佳回合/最佳用时。</p>
+            </div>
+            <button id="refreshLeaderboard" class="rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-white/10">刷新</button>
+          </div>
+
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead class="text-xs text-slate-300">
+                <tr>
+                  <th class="py-2 pr-4">排名</th>
+                  <th class="py-2 pr-4">用户名</th>
+                  <th class="py-2 pr-4">总积分</th>
+                  <th class="py-2 pr-4">最佳回合</th>
+                  <th class="py-2 pr-4">最佳用时</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody" class="divide-y divide-white/10"></tbody>
+            </table>
+          </div>
+
+          <p id="leaderboardHint" class="mt-3 text-xs text-slate-300"></p>
+        </section>
+      </main>
+    </div>
+
+    <div id="loginModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-md rounded-2xl bg-slate-950 p-5 ring-1 ring-white/10">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="text-base font-semibold">开始游戏</h3>
+            <p class="mt-1 text-xs text-slate-300">输入用户名可累计积分并上榜（无需密码）。</p>
+          </div>
+          <button id="closeLogin" class="rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10 hover:bg-white/10">关闭</button>
+        </div>
+
+        <div class="mt-4 grid gap-3">
+          <input id="usernameInput" class="w-full rounded-xl bg-white/5 px-3 py-3 text-sm text-white ring-1 ring-white/10 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="用户名（1-16位，支持中英数字_-）" />
+          <div class="flex flex-col gap-2 md:flex-row">
+            <button id="loginBtn" class="flex-1 rounded-xl bg-indigo-500 px-3 py-3 text-sm font-medium text-white hover:bg-indigo-400">登录</button>
+            <button id="guestBtn" class="flex-1 rounded-xl bg-white/5 px-3 py-3 text-sm ring-1 ring-white/10 hover:bg-white/10">游客进入</button>
+          </div>
+          <p id="loginError" class="hidden text-xs text-rose-300"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="victoryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-md rounded-2xl bg-slate-950 p-5 ring-1 ring-white/10">
+        <h3 class="text-base font-semibold">恭喜通关！</h3>
+        <p class="mt-1 text-xs text-slate-300">成绩已结算，登录用户会自动提交排行榜。</p>
+
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <div class="text-xs text-slate-300">本局回合</div>
+            <div id="victoryTurns" class="mt-1 text-xl font-semibold">-</div>
+          </div>
+          <div class="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <div class="text-xs text-slate-300">本局用时</div>
+            <div id="victoryTime" class="mt-1 text-xl font-semibold">-</div>
+          </div>
+          <div class="col-span-2 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <div class="text-xs text-slate-300">本局得分</div>
+            <div id="victoryScore" class="mt-1 text-xl font-semibold">-</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col gap-2 md:flex-row">
+          <button id="playAgain" class="flex-1 rounded-xl bg-indigo-500 px-3 py-3 text-sm font-medium text-white hover:bg-indigo-400">再来一局</button>
+          <button id="closeVictory" class="flex-1 rounded-xl bg-white/5 px-3 py-3 text-sm ring-1 ring-white/10 hover:bg-white/10">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+
