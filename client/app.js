@@ -231,7 +231,7 @@ function renderBoard() {
 
     const front = document.createElement("div")
     front.className =
-      "card-face card-front absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/20 to-slate-900 text-3xl ring-1 ring-indigo-400/30"
+      "card-face card-front absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/20 to-slate-900 text-5xl leading-none ring-1 ring-indigo-400/30 md:text-6xl"
     front.textContent = card.emoji
 
     if (card.matched) {
