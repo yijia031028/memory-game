@@ -342,7 +342,13 @@ async function onVictory() {
     if (state.view === "leaderboard") renderLeaderboard()
     setToast("成绩已提交并更新排行榜")
     setApiStatus("")
-  } catch {
+  } catch (e) {
+    const code = String(e?.message || "")
+    if (code === "INVALID_USERNAME") {
+      setApiStatus("用户名无效，未提交")
+      setToast("用户名无效")
+      return
+    }
     setApiStatus("成绩提交失败（仍可本地游玩）")
     setToast("成绩提交失败")
   }
@@ -474,9 +480,16 @@ function wireEvents() {
       showLoginModal(false)
       setToast("登录成功，通关将自动上榜")
       setApiStatus("")
-    } catch {
+    } catch (e) {
       setApiStatus("")
-      err.textContent = "用户名不合法：1-16位，支持中英数字与 _-"
+      const code = String(e?.message || "")
+      if (code === "INVALID_USERNAME") {
+        err.textContent = "用户名不合法：1-16位，支持中英数字与 _-"
+      } else if (code === "LOGIN_FAILED") {
+        err.textContent = "登录失败，请重试"
+      } else {
+        err.textContent = "服务端不可用，请稍后重试"
+      }
       err.classList.remove("hidden")
     }
   })
